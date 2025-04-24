@@ -333,6 +333,13 @@ let selectedStickers = new Set();
       selectedSticker = null;
     }
   });
+
+document.addEventListener('click', (e) => {
+  console.log('クリックされた要素:', e.target);
+  if (!e.target.closest('.sticker-wrapper') && !e.target.closest('#sticker-gallery')) {
+    clearSelection();
+  }
+});
 </script>
 
 </body>
