@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>シールを貼ろう</title>
+  <title>シールを貼ろう - 背景画像表示修正</title>
   <style>
     body {
       background-color: #111;
@@ -10,35 +10,23 @@
       font-family: sans-serif;
       padding: 20px;
       display: flex;
-      gap: 40px;
       justify-content: center;
-    }
-    .sidebar {
-      width: 250px;
-    }
-    .main {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .panel {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      justify-content: flex-start;
-    }
-    h1 {
-      font-size: 24px;
-      margin-bottom: 10px;
-      text-align: center;
     }
     #background-container {
       position: relative;
       width: 307px;
       height: 666px;
-      background-color: black;
-      border: 2px solid #444;
       overflow: hidden;
+      border: 2px solid #444;
+    }
+    #background-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
     }
     #sticker-layer {
       position: absolute;
@@ -46,273 +34,72 @@
       left: 0;
       width: 100%;
       height: 100%;
+      z-index: 1;
     }
     .sticker-wrapper {
       position: absolute;
-      cursor: move;
       transform-origin: center center;
-      transition: opacity 0.3s ease;
-    }
-    @keyframes blink {
-      0%, 100% {
-        outline-color: #ff0;
-        box-shadow: 0 0 12px #ff0;
-      }
-      50% {
-        outline-color: #f0f;
-        box-shadow: 0 0 12px #f0;
-      }
-    }
-    .sticker-wrapper.selected {
-      outline: 3px solid #ff0;
-      animation: blink 1s infinite;
-      border-radius: 8px;
-      z-index: 100;
-      opacity: 1;
-    }
-    .sticker-wrapper.dimmed {
-      opacity: 0.4;
     }
     .sticker {
       max-width: 100px;
       max-height: 100px;
       display: block;
     }
-    .controls {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .instructions {
-      font-size: 14px;
-      line-height: 1.6;
-    }
-    #sticker-gallery {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    #sticker-gallery img {
-      border: 1px solid #666;
-      border-radius: 4px;
-    }
   </style>
 </head>
 <body>
 
-<div class="sidebar">
-  <h2>使い方</h2>
-  <div class="instructions">
-    <ul>
-      <li>📂 「画像を選択」してシールをアップロード</li>
-      <li>🗃️ ギャラリーから何度でも貼れる</li>
-      <li>🗅 ドラッグで移動（選択中のみ）</li>
-      <li>🔀 ホイールで回転、Shift+ホイールで拡大縮小</li>
-      <li>☑ Ctrl/Cmdクリックで複数選択</li>
-      <li>🗑️ 「選択シール削除」でまとめて削除</li>
-      <li>💾 保存／🔄 ロード／🪹 全消し対応</li>
-    </ul>
-  </div>
+<div id="background-container">
+  <img src="background.png" id="background-image">
+  <div id="sticker-layer"></div>
 </div>
 
-<div class="main">
-  <h1>シールを貼ろう</h1>
-  <div id="background-container">
-    <div id="sticker-layer"></div>
-  </div>
-</div>
-
-<div class="panel">
-  <div class="controls">
-    <input type="file" id="sticker-upload" accept="image/*">
-    <button onclick="saveStickers()">💾 保存</button>
-    <button onclick="loadStickers()">🔄 ロード</button>
-    <button onclick="clearStickers()">🪹 全消し</button>
-    <button onclick="deleteSelectedSticker()">🗑️ 選択シール削除</button>
-  </div>
-  <h3>アップロード済みのシール</h3>
-  <div id="sticker-gallery"></div>
-</div>
+<input type="file" id="sticker-upload" accept="image/*">
 
 <script>
   const upload = document.getElementById('sticker-upload');
   const layer = document.getElementById('sticker-layer');
-  let selectedStickers = new Set();
-  let pasteOffsetX = 0;
-  let pasteOffsetY = 0;
 
   upload.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function (event) {
-      const base64 = event.target.result;
-      addToGallery(base64);
-      createSticker(base64);
-    };
-    reader.readAsDataURL(file);
-  });
-
-  function addToGallery(base64) {
-    const gallery = document.getElementById('sticker-gallery');
-    const thumb = document.createElement('img');
-    thumb.src = base64;
-    thumb.style.width = '60px';
-    thumb.style.height = '60px';
-    thumb.style.cursor = 'pointer';
-    thumb.title = 'クリックして貼る';
-    thumb.onclick = () => {
-      createSticker(base64);
-    };
-    gallery.appendChild(thumb);
-  }
-
-  function createSticker(src, x = 100, y = 200, rotation = 0, scale = 1) {
-    x += pasteOffsetX;
-    y += pasteOffsetY;
-    pasteOffsetX += 20;
-    pasteOffsetY += 20;
-    if (pasteOffsetX > 100) pasteOffsetX = 0;
-    if (pasteOffsetY > 100) pasteOffsetY = 0;
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'sticker-wrapper';
-    wrapper.style.left = x + 'px';
-    wrapper.style.top = y + 'px';
-    wrapper.dataset.rotation = rotation;
-    wrapper.dataset.scale = scale;
-    wrapper.style.transform = `rotate(${rotation}deg) scale(${scale})`;
 
     const img = document.createElement('img');
     img.className = 'sticker';
-    img.src = src;
+    img.src = URL.createObjectURL(file);
+    img.style.left = '100px';
+    img.style.top = '200px';
 
+    const wrapper = document.createElement('div');
+    wrapper.className = 'sticker-wrapper';
+    wrapper.style.left = '100px';
+    wrapper.style.top = '200px';
     wrapper.appendChild(img);
+
     layer.appendChild(wrapper);
-
-    wrapper.addEventListener('click', (e) => {
-      handleStickerClick(wrapper, e);
-      e.stopPropagation();
-    });
-
-    enableStickerInteraction(wrapper);
-  }
-
-  function handleStickerClick(wrapper, event) {
-    const multi = event.ctrlKey || event.metaKey;
-    if (!multi) {
-      clearSelection();
-      selectedStickers.add(wrapper);
-      wrapper.classList.add('selected');
-    } else {
-      if (selectedStickers.has(wrapper)) {
-        selectedStickers.delete(wrapper);
-        wrapper.classList.remove('selected');
-      } else {
-        selectedStickers.add(wrapper);
-        wrapper.classList.add('selected');
-      }
-    }
-    updateDimmedState();
-  }
-
-  function clearSelection() {
-    selectedStickers.forEach(el => el.classList.remove('selected'));
-    selectedStickers.clear();
-    updateDimmedState();
-  }
-
-  function updateDimmedState() {
-    const all = document.querySelectorAll('.sticker-wrapper');
-    if (selectedStickers.size === 0) {
-      all.forEach(el => el.classList.remove('dimmed'));
-    } else {
-      all.forEach(el => {
-        el.classList.toggle('dimmed', !selectedStickers.has(el));
-      });
-    }
-  }
-
-  document.addEventListener('click', () => {
-    clearSelection();
+    makeDraggable(wrapper);
   });
 
-  function deleteSelectedSticker() {
-    if (selectedStickers.size === 0) {
-      alert('削除するシールを選択してください。');
-      return;
-    }
-    selectedStickers.forEach(el => el.remove());
-    clearSelection();
-  }
-
-  function enableStickerInteraction(wrapper) {
+  function makeDraggable(el) {
     let isDragging = false, offsetX = 0, offsetY = 0;
 
-    wrapper.addEventListener('mousedown', (e) => {
-      if (!selectedStickers.has(wrapper)) return;
+    el.addEventListener('mousedown', (e) => {
       isDragging = true;
       offsetX = e.offsetX;
       offsetY = e.offsetY;
     });
 
     document.addEventListener('mousemove', (e) => {
-      if (!isDragging || !selectedStickers.has(wrapper)) return;
-      const rect = layer.getBoundingClientRect();
-      wrapper.style.left = (e.clientX - rect.left - offsetX) + 'px';
-      wrapper.style.top = (e.clientY - rect.top - offsetY) + 'px';
+      if (isDragging) {
+        const rect = el.parentElement.getBoundingClientRect();
+        el.style.left = (e.clientX - rect.left - offsetX) + 'px';
+        el.style.top = (e.clientY - rect.top - offsetY) + 'px';
+      }
     });
 
     document.addEventListener('mouseup', () => {
       isDragging = false;
     });
-
-    wrapper.addEventListener('wheel', (e) => {
-      if (!selectedStickers.has(wrapper)) return;
-      e.preventDefault();
-      let rotation = parseFloat(wrapper.dataset.rotation) || 0;
-      let scale = parseFloat(wrapper.dataset.scale) || 1;
-      if (e.shiftKey) {
-        scale += e.deltaY < 0 ? 0.1 : -0.1;
-        scale = Math.max(0.1, scale);
-      } else {
-        rotation += e.deltaY < 0 ? -15 : 15;
-      }
-      wrapper.dataset.rotation = rotation;
-      wrapper.dataset.scale = scale;
-      wrapper.style.transform = `rotate(${rotation}deg) scale(${scale})`;
-    });
-  }
-
-  function saveStickers() {
-    const stickers = [];
-    document.querySelectorAll('.sticker-wrapper').forEach(wrapper => {
-      const img = wrapper.querySelector('img');
-      stickers.push({
-        src: img.src,
-        x: parseFloat(wrapper.style.left),
-        y: parseFloat(wrapper.style.top),
-        rotation: parseFloat(wrapper.dataset.rotation) || 0,
-        scale: parseFloat(wrapper.dataset.scale) || 1
-      });
-    });
-    localStorage.setItem('stickers', JSON.stringify(stickers));
-    alert('保存しました！');
-  }
-
-  function loadStickers() {
-    clearStickers();
-    const data = localStorage.getItem('stickers');
-    if (!data) return alert('保存データがありません。');
-    const stickers = JSON.parse(data);
-    stickers.forEach(stk => {
-      createSticker(stk.src, stk.x, stk.y, stk.rotation, stk.scale);
-    });
-  }
-
-  function clearStickers() {
-    document.querySelectorAll('.sticker-wrapper').forEach(el => el.remove());
-    clearSelection();
   }
 </script>
 
