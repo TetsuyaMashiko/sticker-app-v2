@@ -88,18 +88,18 @@
   
     @keyframes blink {
       0%, 100% {
-        outline-color: #ff0;
-        box-shadow: 0 0 10px #ff0;
+        outline: 3px solid #ff0;
+        box-shadow: 0 0 12px #ff0;
       }
       50% {
-        outline-color: #f0f;
-        box-shadow: 0 0 10px #f0;
+        outline: 3px solid #f0f;
+        box-shadow: 0 0 12px #f0;
       }
     }
 
     .sticker-wrapper.selected {
-      outline: 2px dashed yellow;
       animation: blink 1s infinite;
+      border-radius: 8px;
       z-index: 100;
     }
 
@@ -151,6 +151,7 @@
   const layer = document.getElementById('sticker-layer');
   const gallery = document.getElementById('sticker-gallery');
   let selectedSticker = null;
+let selectedStickers = new Set();
   let pasteOffsetX = 0;
   let pasteOffsetY = 0;
 
@@ -200,7 +201,10 @@
     wrapper.appendChild(img);
     layer.appendChild(wrapper);
 
+    
     wrapper.addEventListener('click', (e) => {
+      handleStickerClick(wrapper, e);
+    
       e.stopPropagation();
       if (selectedSticker) selectedSticker.style.outline = 'none';
       selectedSticker = wrapper;
@@ -248,7 +252,44 @@
     });
   }
 
-  function deleteSelectedSticker() {
+  
+    function handleStickerClick(wrapper, event) {
+      const multi = event.ctrlKey || event.metaKey;
+      if (!multi) {
+        clearSelection();
+        selectedStickers.add(wrapper);
+        wrapper.classList.add('selected');
+      } else {
+        if (selectedStickers.has(wrapper)) {
+          selectedStickers.delete(wrapper);
+          wrapper.classList.remove('selected');
+        } else {
+          selectedStickers.add(wrapper);
+          wrapper.classList.add('selected');
+        }
+      }
+      updateDimmedState();
+    }
+
+    function clearSelection() {
+      selectedStickers.forEach(el => el.classList.remove('selected'));
+      selectedStickers.clear();
+      updateDimmedState();
+    }
+
+    function updateDimmedState() {
+      const all = document.querySelectorAll('.sticker-wrapper');
+      if (selectedStickers.size === 0) {
+        all.forEach(el => el.classList.remove('dimmed'));
+      } else {
+        all.forEach(el => {
+          el.classList.toggle('dimmed', !selectedStickers.has(el));
+        });
+      }
+    }
+
+    function deleteSelectedSticker() {
+
     if (selectedSticker) {
       selectedSticker.remove();
       selectedSticker = null;
